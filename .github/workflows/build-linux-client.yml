@@ -17,16 +17,22 @@ jobs:
       GYP_MSVS_VERSION: '2022'
       npm_config_msvs_version: '2022'
     steps:
-      - name: Checkout this repo/branch to C-drive (fork-agnostic)
+      - name: Checkout this repo/branch (fork-agnostic)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          submodules: recursive
+          fetch-depth: 1
+          persist-credentials: true
+
+      - name: Copy to C-drive short path (avoids Windows MAX_PATH issues)
         shell: bash
         run: |
-          mkdir -p /c/b && cd /c/b
-          git init .
-          git config core.symlinks true
-          # Build THIS repo at the branch the workflow was dispatched on (works on any fork).
-          git remote add origin "${{ github.server_url }}/${{ github.repository }}.git"
-          git -c http.extraheader="AUTHORIZATION: bearer ${{ github.token }}" pull origin "${{ github.ref_name }}" --depth=1
-          git submodule update --jobs=8 --init --depth=1
+          mkdir -p /c/b
+          cp -a "$GITHUB_WORKSPACE/." /c/b/
+          git -C /c/b config core.symlinks true || true
+          git -C /c/b submodule update --jobs=8 --init --depth=1 || true
+          ls /c/b | head -20
 
       - name: Setup Node
         uses: actions/setup-node@v4
